@@ -47,7 +47,10 @@ class ConnectionManager:
             await self.send_notifications_message(recipient_id=recipient_id, data=mes)
 
     def disconnect(self, recipient_id: int, websocket: WebSocket):
-        del self.active_connections[recipient_id]
+        try:
+            del self.active_connections[recipient_id]
+        except KeyError:
+            print(f"Неудачное отключение пользователя {recipient_id}")
 
     async def send_personal_message(self, websocket: WebSocket, data):
         await websocket.send_json(data)
