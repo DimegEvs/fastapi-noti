@@ -1,3 +1,4 @@
+import base64
 import datetime
 from typing import Dict
 
@@ -7,7 +8,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import and_, insert, join, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.config import URL_LOGGER
+from src.config import URL_LOGGER, SECRET_KEY
 from src.message.models import Message, manager
 from src.user.models import User, UserService
 from src.database import async_session_maker, get_async_session
@@ -17,6 +18,7 @@ router = APIRouter(
     prefix="",
     tags=["WS"]
 )
+
 
 @router.websocket("/ws/{recipient_id}")
 async def websocket_endpoint(websocket: WebSocket, recipient_id: int):
@@ -41,6 +43,7 @@ async def websocket_forward(recipient_id: int, sender_id: int):
         })
         params = {
             "type": "INFO",
+            "user_id": recipient_id,
             "message": f"User ID: {recipient_id} get notification from ID: {sender_id}."
         }
         async with httpx.AsyncClient() as client:
