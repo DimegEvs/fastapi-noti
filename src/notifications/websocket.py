@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import and_, insert, join, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.config import URL_LOGGER, SECRET_KEY
+from src.config import URL_LOGGER, SECRET_KEY, URL_MIDDLEWARE
 from src.message.models import Message, manager
 from src.user.models import User, UserService
 from src.database import async_session_maker, get_async_session
@@ -25,10 +25,30 @@ async def websocket_endpoint(websocket: WebSocket, recipient_id: int):
     if recipient_id in manager.active_connections:
         manager.disconnect(recipient_id=recipient_id, websocket=websocket)
     await manager.connect(recipient_id, websocket)
+    params = {
+        "message": f"Websocket accepted: {websocket.url} IP: {websocket.client.host} HEADERS: {websocket.headers} COOKIES: {websocket.cookies}"
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.get(URL_MIDDLEWARE, params=params)
+        except httpx.HTTPError as e:
+            print(f"HTTP error occurred: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
     try:
         while True:
             message = await websocket.receive_json()
     except WebSocketDisconnect:
+        params = {
+            "message": f"Websocket disconnected: {websocket.url} IP: {websocket.client.host} HEADERS: {websocket.headers} COOKIES: {websocket.cookies}"
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.get(URL_MIDDLEWARE, params=params)
+            except httpx.HTTPError as e:
+                print(f"HTTP error occurred: {e}")
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
         manager.disconnect(recipient_id, websocket)
         
 
